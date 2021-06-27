@@ -61,7 +61,6 @@ int CEnvironmentSetDlg::update()
 	str = dir;
 	CreateDirectory(str + TEXT("\\PRLock 1.1.2"), NULL);
 
-	MessageBox(str + TEXT("\\PRLock 1.1.2\\EnvironmentSet.ini"), MB_OK);
 	if (!EnvData.Open(str + TEXT("\\PRLock 1.1.2\\EnvironmentSet.ini"),
 		CFile::modeWrite | CFile::modeCreate | CFile::shareExclusive | CFile::typeBinary, &eex))
 	{

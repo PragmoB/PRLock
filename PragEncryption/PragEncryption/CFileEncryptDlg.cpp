@@ -171,6 +171,13 @@ void CFileEncryptDlg::OnClickedButtonFileEncrypt()
 
 		key.N = AccessKey(&N, pChar);
 		key.e = AccessKey(&e, pChar);
+
+		if (key.N == 0 || key.e == 0)
+		{
+			MessageBox(TEXT("마스터키 액세스 실패"), TEXT("알림"),
+				MB_OK | MB_ICONERROR);
+			return;
+		}
 		str = input.normalkey;
 
 		/* 일반 키(normalkey) 암호화 */
@@ -371,6 +378,13 @@ void CFileEncryptDlg::OnClickedButtonFileDecrypt()
 		key.N = AccessKey(&N, pChar);
 		key.d = AccessKey(&d, pChar);
 
+		if (key.N == 0 || key.d == 0)
+		{
+			MessageBox(TEXT("마스터키 액세스 실패"), TEXT("알림"),
+				MB_OK | MB_ICONERROR);
+			return;
+		}
+
 		/* 일반 키(normalkey) 복호화 */
 
 		CString normalkey;
@@ -534,6 +548,12 @@ BigInteger CFileEncryptDlg::AccessKey(CFile* file, const UCHAR* masterkey)
 	try {
 		for (UINT i = 1; file->Read(letter, 1); i++)
 		{
+			int decrypted = (letter[0] ^ masterkeysha[pMasterkey]);
+			if (decrypted < 0 || 9 < decrypted)
+			{
+				result = FALSE;
+				break;
+			}
 			result += digit * (letter[0] ^ masterkeysha[pMasterkey]);
 			digit *= 10;
 			if (++pMasterkey >= 64)
