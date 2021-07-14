@@ -207,7 +207,6 @@
     <ClInclude Include="CFileEncryptDlg.h" />
     <ClInclude Include="CInputDecryptDlg.h" />
     <ClInclude Include="CInputEncryptDlg.h" />
-    <ClInclude Include="CInputMasterKeyDlg.h" />
     <ClInclude Include="CIOProgress.h" />
     <ClInclude Include="CKeyEncryptDlg.h" />
     <ClInclude Include="PragEncryption.h" />
@@ -222,7 +221,6 @@
     <ClCompile Include="CFileEncryptDlg.cpp" />
     <ClCompile Include="CInputDecryptDlg.cpp" />
     <ClCompile Include="CInputEncryptDlg.cpp" />
-    <ClCompile Include="CInputMasterKeyDlg.cpp" />
     <ClCompile Include="CIOProgress.cpp" />
     <ClCompile Include="CKeyEncryptDlg.cpp" />
     <ClCompile Include="PragEncryption.cpp" />

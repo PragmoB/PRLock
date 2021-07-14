@@ -15,21 +15,31 @@ RSA::~RSA()
 {
 }
 
+void RSA::SetKeyAuto(int bitlength)
+{
+	BigInteger prime1, prime2, rand, maxlength = 1;
+	for (int i = 0; i < bitlength; i++)
+		maxlength *= 2;
+	
+	BigInteger num = maxlength;
+	int digit;
+	for (digit = 0; num != 0; digit++) // num의 자릿수 구하기
+		num /= 10;
+
+	rand = BigRand(digit - 1, 2); // 먼저 2^bitlength / 10 의 자릿수 ~ 두 자릿수의 랜덤 수 생성
+	prime1 = GetPrime(rand); // 그보다 큰 소수 생성
+	num = maxlength / prime1; // N값은 2^bitlength보다 작고  2^(biglength - 1)과 같거나 크게 만들어야 하므로
+	prime2 = GetPrime(num); // 대략적으로 나눈값으로 소수를 찾는다
+
+	// prime1과 prime2가 같으면 안되므로(TMI: 사실 이거 알아내느라 개고생함) 한 번 더 돌려준다.
+	if (prime1 == prime2)
+		prime2 = GetPrime(prime2 + 1);
+
+	SetKey(prime1, prime2);
+}
 void RSA::SetKey(BigInteger prime1, BigInteger prime2)
 {
 	BigInteger EulerN, temp;
-	if (prime1 == NULL || prime2 == NULL)
-	{
-		prime1 = 10;
-		prime2 = 10;
-
-		prime1 = GetPrime(BigRand(13, 11));
-		prime2 = GetPrime(BigRand(13, 11));
-
-		// prime1과 prime2가 같으면 안되므로(TMI: 사실 이거 알아내느라 개고생함) 같지 않을때까지 돌려준다.
-		while (prime1 == prime2)
-			prime2 = GetPrime(BigRand(13, 11));
-	}
 	srand((UINT)time(NULL));
 
 	e = NULL;
@@ -37,7 +47,7 @@ void RSA::SetKey(BigInteger prime1, BigInteger prime2)
 	N = prime1 * prime2;
 	EulerN = (prime1 - 1) * (prime2 - 1);
 
-	for (BigInteger i = BigRand(10, 9); i < EulerN; i++)
+	for (BigInteger i = 3; i < EulerN; i++)
 	{
 		BigInteger g, y, x;
 
@@ -47,8 +57,8 @@ void RSA::SetKey(BigInteger prime1, BigInteger prime2)
 			{
 
 				CString str;
-				e = x;
-				d = i;
+				e = i;
+				d = x;
 				break;
 			}
 
@@ -58,8 +68,10 @@ void RSA::SetKey(BigInteger prime1, BigInteger prime2)
 BigInteger RSA::GetPrime(BigInteger prime)
 {
 	// TODO: 여기에 구현 코드 추가.
+	if (prime % 2 == 0) // 짝수면
+		prime += 1; // 홀수로 만듬
 
-	for (; !isPrime(prime); prime++);
+	for (; !isPrime(prime); prime += 2);
 	return prime;
 }
 
@@ -133,7 +145,7 @@ BigInteger RSA::BigRand(int mostDigit, int leastDigit)
 }
 
 
-BigInteger RSA::Encrypt(int P)
+BigInteger RSA::Encrypt(BigInteger P)
 {
 	// TODO: 여기에 구현 코드 추가.
 
@@ -143,12 +155,12 @@ BigInteger RSA::Encrypt(int P)
 }
 
 
-int RSA::Decrypt(BigInteger C)
+BigInteger RSA::Decrypt(BigInteger C)
 {
 	// TODO: 여기에 구현 코드 추가.
 
 	/* P = C^d mod N */
-	return fastmod(C, d, N).toInt();
+	return fastmod(C, d, N);
 }
 
 

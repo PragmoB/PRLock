@@ -22,7 +22,7 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	afx_msg void OnBnClickedButtonOk();
-	CString masterkey;
+//	CString masterkey;
 	CString normalkey;
 //	BOOL use_master;
 	afx_msg void OnClickedCheckNoUseMaster();

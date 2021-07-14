@@ -14,9 +14,10 @@ public:
 	BigInteger e;
 	BigInteger d;
 
+	void SetKeyAuto(int bitlength = 60);
 	void SetKey(BigInteger prime1 = NULL, BigInteger prime2 = NULL);
-	BigInteger Encrypt(int P);
-	int Decrypt(BigInteger C);
+	BigInteger Encrypt(BigInteger P);
+	BigInteger Decrypt(BigInteger C);
 	~RSA();
 
 private:

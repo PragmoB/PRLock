@@ -27,4 +27,5 @@ public:
 	afx_msg void OnClickedButtonKeySet();
 	afx_msg void OnClickedButtonKeyUpdate();
 	int WriteBigint(CFile* file, BigInteger num, u_char* key = NULL);
+	int key_length;
 };

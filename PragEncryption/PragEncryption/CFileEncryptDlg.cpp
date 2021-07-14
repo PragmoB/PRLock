@@ -104,13 +104,11 @@ void CFileEncryptDlg::OnClickedButtonFileEncrypt()
 	
 	EnvSet.get();
 
-	while (!input.nouse_master && EnvSet.EncKeyPath == "")
+	if (!input.nouse_master && EnvSet.EncKeyPath == "")
 	{
 		MessageBox(TEXT("환경 설정에서 RSA 암호화키 파일(N.pkey, e.pkey)의 경로를 선택해주세요."),
 			TEXT("알림"), MB_OK | MB_ICONINFORMATION);
-
-		if (input.DoModal() != IDOK)
-			return;
+		return;
 	}
 
 	CFile N, e;
@@ -166,36 +164,50 @@ void CFileEncryptDlg::OnClickedButtonFileEncrypt()
 
 		/* 마스터키 액세스 */
 
-		str = input.masterkey;
-		const UCHAR* pChar = (const UCHAR*)str.GetBuffer();
-
-		key.N = AccessKey(&N, pChar);
-		key.e = AccessKey(&e, pChar);
+		key.N = AccessKey(&N, NULL);
+		key.e = AccessKey(&e, NULL);
 
 		if (key.N == 0 || key.e == 0)
 		{
 			MessageBox(TEXT("마스터키 액세스 실패"), TEXT("알림"),
 				MB_OK | MB_ICONERROR);
+			::DeleteFile(FilePath + ".pecr");
 			return;
 		}
 		str = input.normalkey;
 
 		/* 일반 키(normalkey) 암호화 */
 
-		pChar = (const UCHAR*)str.GetBuffer();
+		const UCHAR* pChar = (const UCHAR*)str.GetBuffer();
 
 		int length = strlen((const char*)pChar);
-		for (int i = 0; i < length; i++)
+		BigInteger m = 0; // 암호화할 수
+		for (int i = length - 1; i >= 0; i--)
 		{
-			BigInteger nextnum, num = key.Encrypt(pChar[i]);
-			for (nextnum = num / 10; num != 0; num /= 10)
-			{
-				letter[0] = (num - nextnum * 10).toInt() + 48;
-				result.Write(letter, 1);
-				nextnum /= 10;
-			}
-			letter[0] = 8;
+			/* 
+			 * 예를 들어 my_pass를 암호화한다 치면
+			 * my_pass를 바이너리 단위로 쪼개면 6D 79 5F 70 61 73 73 이 되는데
+			 * 역순으로 합쳐서 0x737361705F796D라는 수를 만드는 과정임.
+			 * 이렇게 하는 이유는 RSA 공개키로 일반키를 한꺼번에 암호화하기 위함.
+			 */
+			m += pChar[i];
+			m *= 1 << 8; // BigInteger는 쉬프트 연산이 안되더라
+		}
+		m /= 1 << 8;
+		if (key.N <= m) // 평서문은 N보다 크면 안됨
+		{
+			MessageBox(TEXT("비밀번호가 너무 깁니다"), TEXT("오류"),
+				MB_OK | MB_ICONERROR);
+			::DeleteFile(FilePath + ".pecr");
+			return;
+		}
+		BigInteger nextnum, num = key.Encrypt(m); // 비밀번호를 암호화 한 결과물 num
+		// 파일에 기록
+		for (nextnum = num / 10; num != 0; num /= 10)
+		{
+			letter[0] = (num - nextnum * 10).toInt() + 48;
 			result.Write(letter, 1);
+			nextnum /= 10;
 		}
 	}
 
@@ -347,36 +359,27 @@ void CFileEncryptDlg::OnClickedButtonFileDecrypt()
 		if (EnvSet.DecKeyPath == "") // 키 파일을 선택하지 않았을경우
 		{
 			MessageBox(TEXT("RSA 복호화키 파일(N.pkey, d.pkey) 경로를 선택해주세요."), TEXT("알림"), MB_OK);
-			result.Close();
-			::DeleteFile(FileDir + DecryptedFileName);
 			return;
 		}
 		/* 마스터키 액세스 */
-
-		CStringA str(input.masterkey);
-		const UCHAR* pChar = (const UCHAR*)str.GetBuffer();
 
 		CFile N, d;
 
 		if (!N.Open(EnvSet.DecKeyPath + TEXT("\\N.pkey"),
 			CFile::modeRead | CFile::shareExclusive | CFile::typeBinary, &eex))
 		{
-			result.Close();
-			::DeleteFile(FileDir + DecryptedFileName);
 			eex.ReportError();
 			return;
 		}
 		if (!d.Open(EnvSet.DecKeyPath + TEXT("\\d.pkey"),
 			CFile::modeRead | CFile::shareExclusive | CFile::typeBinary, &eex))
 		{
-			result.Close();
-			::DeleteFile(FileDir + DecryptedFileName);
 			eex.ReportError();
 			return;
 		}
 
-		key.N = AccessKey(&N, pChar);
-		key.d = AccessKey(&d, pChar);
+		key.N = AccessKey(&N, NULL);
+		key.d = AccessKey(&d, NULL);
 
 		if (key.N == 0 || key.d == 0)
 		{
@@ -386,36 +389,38 @@ void CFileEncryptDlg::OnClickedButtonFileDecrypt()
 		}
 
 		/* 일반 키(normalkey) 복호화 */
-
-		CString normalkey;
-		BigInteger digit = 1, normalkeyletter = 0;
+		BigInteger digit = 1, e_normalkey = 0;
 		UINT i = 0, j = 0;
 		
-		original.Read(letter, 1);
-		for (i = 0; letter[0] != 7; )
+		for (i = 0; letter[0] != 7; i++)
 		{
-			original.Seek(++i, CFile::begin);
-			if (letter[0] != 8) // ASCII 8은 문자를 구분하므로 normalkeyletter에는 계산하지 않음.
-			{
-				normalkeyletter += digit * (letter[0] - 48);
-				digit *= 10;
-			}
-			else
-			{
-				normalkey += (char)key.Decrypt(normalkeyletter);
-				normalkeyletter = 0;
-				digit = 1;
-			}
+			original.Seek(i, CFile::begin);
 			original.Read(letter, 1);
+			e_normalkey += digit * (letter[0] - 48);
+			digit *= 10;
 		}
-		if (i == 0) // 마스터키가 없는경우
+		if (i == 1) // 마스터키가 없는경우
 		{
-			result.Close();
-			::DeleteFile(FileDir + DecryptedFileName);
-			
 			MessageBox(TEXT("마스터키가 등록되지 않았습니다"), TEXT("알림"),
 				MB_OK | MB_ICONINFORMATION);
 			return;
+		}
+
+		digit /= 10;
+		e_normalkey -= digit * (letter[0] - 48);
+		BigInteger d_normalkey = key.Decrypt(e_normalkey); // 일반키 복호화
+		/*
+		 * 복호화된 일반키는 각각의 바이너리가 하나의 수로 합쳐져있어 이를 분리하는 작업이 필요함.
+		 * 예를 들어 일반키가 my_pass이면
+		 * 복호화 직후 값은 이렇게 나올 것임 : 0x737361705F796D
+		 * 이를 쉬프트 연산을 사용해 바이트 단위로 쪼개서 6D 79 5F 70 61 73 73로 만드는 과정이 필요함.
+		 * 아래 코드는 그 작업을 수행함
+		 */
+		UCHAR normalkey[1000] = { 0, };
+		for (int i = 0;d_normalkey != 0; i++)
+		{
+			normalkey[i] = (d_normalkey - ((d_normalkey / 0x100) * 0x100)).toInt();
+			d_normalkey /= 0x100;
 		}
 
 		input.normalkey = normalkey;
@@ -423,7 +428,7 @@ void CFileEncryptDlg::OnClickedButtonFileDecrypt()
 		N.Close();
 		d.Close();
 
-		if (MessageBox(TEXT("일반키: ") + normalkey + TEXT("\n복호화를 계속하시겠습니까?"),
+		if (MessageBox(TEXT("일반키: ") + input.normalkey + TEXT("\n복호화를 계속하시겠습니까?"),
 			TEXT("일반키 복호화 완료"), MB_YESNO) == IDNO)
 			return;
 	}
@@ -543,20 +548,27 @@ BigInteger CFileEncryptDlg::AccessKey(CFile* file, const UCHAR* masterkey)
 	UINT pMasterkey = 0; // xor 암호화를 풀기 위한 포인터.
 
 	BigInteger result = 0;
-	SHA256_Encrypt(masterkey, strlen((const char*)masterkey), masterkeysha);
+
+	if(masterkey != NULL) // 마스터키를 보호하는 비밀번호가 있다면
+		SHA256_Encrypt(masterkey, strlen((const char*)masterkey), masterkeysha);
 
 	try {
 		for (UINT i = 1; file->Read(letter, 1); i++)
 		{
-			int decrypted = (letter[0] ^ masterkeysha[pMasterkey]);
+			int decrypted = letter[0] - 48;
+
+			if (masterkey != NULL) // 마스터키를 보호하는 비밀번호가 있다면 
+				decrypted = (letter[0] ^ masterkeysha[pMasterkey]);// 추가적인 복호화 연산을 해야함
+
+			// (마스터키 비밀번호를 등록 했을 경우만 해당)복호화했을때 데이터가 깨지면
 			if (decrypted < 0 || 9 < decrypted)
 			{
-				result = FALSE;
+				result = FALSE; // 실패!
 				break;
 			}
-			result += digit * (letter[0] ^ masterkeysha[pMasterkey]);
+			result += digit * decrypted;
 			digit *= 10;
-			if (++pMasterkey >= 64)
+			if (++pMasterkey >= 64) // (마스터키 비밀번호를 등록 했을 경우만 해당)
 				pMasterkey = 0;
 
 			file->Seek(i, CFile::begin);

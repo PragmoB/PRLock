@@ -27,10 +27,7 @@ CEnvironmentSetDlg::~CEnvironmentSetDlg()
 void CEnvironmentSetDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
-	//  DDX_Check(pDX, IDC_CHECK_AUTO_DELETE, FILE_AUTO_DELETE);
 	DDX_Check(pDX, IDC_CHECK_AUTO_DELETE, FILE_AUTO_DELETE);
-	//  DDX_Text(pDX, IDC_EDIT_DECRYPT_KEY_PATH, EncKeyPath);
-	//  DDX_Text(pDX, IDC_EDIT_ENCRYPT_KEY_PATH, DecKeyPath);
 	DDX_Text(pDX, IDC_EDIT_DECRYPT_KEY_PATH, DecKeyPath);
 	DDX_Text(pDX, IDC_EDIT_ENCRYPT_KEY_PATH, EncKeyPath);
 }
@@ -41,6 +38,7 @@ BEGIN_MESSAGE_MAP(CEnvironmentSetDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_CHECK_AUTO_DELETE, &CEnvironmentSetDlg::OnClickedCheckAutoDelete)
 	ON_BN_CLICKED(IDC_BUTTON_ENCRYPT_KEY_PATH, &CEnvironmentSetDlg::OnBnClickedButtonEncryptKeyPath)
 	ON_BN_CLICKED(IDC_BUTTON_DECRYPT_KEY_PATH, &CEnvironmentSetDlg::OnBnClickedButtonDecryptKeyPath)
+	ON_BN_CLICKED(IDC_BUTTON_ENV_SAVE, &CEnvironmentSetDlg::OnBnClickedButtonEnvSave)
 END_MESSAGE_MAP()
 
 
@@ -53,15 +51,16 @@ int CEnvironmentSetDlg::update()
 
 	CFile EnvData;
 	TCHAR dir[50] = TEXT("");
+	const TCHAR* version = TEXT("2.1.3");
 	CFileException eex;
 
 	CString str;
 
 	GetEnvironmentVariable(TEXT("APPDATA"), dir, 50);
 	str = dir;
-	CreateDirectory(str + TEXT("\\PRLock 1.1.2"), NULL);
+	CreateDirectory(str + TEXT("\\PRLock ") + version, NULL);
 
-	if (!EnvData.Open(str + TEXT("\\PRLock 1.1.2\\EnvironmentSet.ini"),
+	if (!EnvData.Open(str + TEXT("\\PRLock ") + version + TEXT("\\EnvironmentSet.ini"),
 		CFile::modeWrite | CFile::modeCreate | CFile::shareExclusive | CFile::typeBinary, &eex))
 	{
 		eex.ReportError();
@@ -206,4 +205,14 @@ void CEnvironmentSetDlg::OnBnClickedButtonDecryptKeyPath()
 		UpdateData(FALSE);
 	}
 	update();
+}
+
+
+void CEnvironmentSetDlg::OnBnClickedButtonEnvSave()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	UpdateData(TRUE);
+	update();
+	MessageBox(TEXT("변경사항이 저장되었습니다"), TEXT("알림"),
+		MB_OK | MB_ICONINFORMATION);
 }
