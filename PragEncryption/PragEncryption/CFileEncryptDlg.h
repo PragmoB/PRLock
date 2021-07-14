@@ -39,4 +39,5 @@ public:
 	CBitmapButton buttFileEncrypt;
 	CBitmapButton buttFileDecrypt;
 	afx_msg void OnEnChangeEditFilePath();
+	afx_msg void OnDropFiles(HDROP hDropInfo);
 };

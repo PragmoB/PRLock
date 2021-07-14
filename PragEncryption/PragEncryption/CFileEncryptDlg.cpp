@@ -33,8 +33,6 @@ void CFileEncryptDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Text(pDX, IDC_EDIT_FILE_PATH, FilePath);
-	//  DDX_Control(pDX, IDC_BUTTON_FILE_ENCRYPT, buttFileEncrypt);
-	//  DDX_Control(pDX, IDC_BUTTON_FILE_DECRYPT, buttFileDecrypt);
 	DDX_Control(pDX, IDC_BUTTON_FILE_ENCRYPT, buttFileEncrypt);
 	DDX_Control(pDX, IDC_BUTTON_FILE_DECRYPT, buttFileDecrypt);
 }
@@ -44,6 +42,7 @@ BEGIN_MESSAGE_MAP(CFileEncryptDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON_FILE_PATH, &CFileEncryptDlg::OnClickedButtonFilePath)
 	ON_BN_CLICKED(IDC_BUTTON_FILE_ENCRYPT, &CFileEncryptDlg::OnClickedButtonFileEncrypt)
 	ON_BN_CLICKED(IDC_BUTTON_FILE_DECRYPT, &CFileEncryptDlg::OnClickedButtonFileDecrypt)
+	ON_WM_DROPFILES()
 END_MESSAGE_MAP()
 
 
@@ -64,6 +63,10 @@ BOOL CFileEncryptDlg::OnInitDialog()
 	buttFileEncrypt.SizeToContent();
 	buttFileDecrypt.SizeToContent();
 
+	
+	ChangeWindowMessageFilter(0x0049, MSGFLT_ADD);
+	ChangeWindowMessageFilter(WM_DROPFILES, MSGFLT_ADD);
+	DragAcceptFiles();
 	return TRUE;  // return TRUE unless you set the focus to a control
 				  // 예외: OCX 속성 페이지는 FALSE를 반환해야 합니다.
 }
@@ -593,4 +596,16 @@ int CFileEncryptDlg::GetFindCharCount(CString& parm_string, char parm_find_char)
 			find_count++;
 	}
 	return	find_count;
+}
+
+
+void CFileEncryptDlg::OnDropFiles(HDROP hDropInfo)
+{
+	// TODO: 여기에 메시지 처리기 코드를 추가 및/또는 기본값을 호출합니다.
+	TCHAR FileName[MAX_PATH] = { 0, };
+	UINT count = DragQueryFile(hDropInfo, -1, FileName, MAX_PATH); // 드래그된 파일 개수
+	DragQueryFile(hDropInfo, 0, FileName, MAX_PATH);
+	FilePath = FileName;
+	UpdateData(FALSE);
+	CDialogEx::OnDropFiles(hDropInfo);
 }
