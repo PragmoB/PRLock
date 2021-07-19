@@ -51,6 +51,9 @@
     <ClInclude Include="CEnvironmentSetDlg.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="AES.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="PragEncryption.cpp">
@@ -81,6 +84,9 @@
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="CEnvironmentSetDlg.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="AES.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>

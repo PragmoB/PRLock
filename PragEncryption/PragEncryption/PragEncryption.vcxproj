@@ -203,6 +203,7 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="AES.h" />
     <ClInclude Include="CEnvironmentSetDlg.h" />
     <ClInclude Include="CFileEncryptDlg.h" />
     <ClInclude Include="CInputDecryptDlg.h" />
@@ -217,6 +218,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AES.cpp" />
     <ClCompile Include="CEnvironmentSetDlg.cpp" />
     <ClCompile Include="CFileEncryptDlg.cpp" />
     <ClCompile Include="CInputDecryptDlg.cpp" />

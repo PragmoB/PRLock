@@ -6,13 +6,14 @@
 #include "CFileEncryptDlg.h"
 #include "afxdialogex.h"
 #include "CInputEncryptDlg.h"
-#include "RSA.h"
 #include "KISA_SHA256.h"
 #include "CInputEncryptDlg.h"
 #include "CInputDecryptDlg.h"
 #include "CIOProgress.h"
 #include "CEnvironmentSetDlg.h"
 
+#include "AES.h"
+#include "RSA.h"
 
 // CFileEncryptDlg 대화 상자
 
@@ -174,6 +175,7 @@ void CFileEncryptDlg::OnClickedButtonFileEncrypt()
 		{
 			MessageBox(TEXT("마스터키 액세스 실패"), TEXT("알림"),
 				MB_OK | MB_ICONERROR);
+			result.Close();
 			::DeleteFile(FilePath + ".pecr");
 			return;
 		}
@@ -201,6 +203,7 @@ void CFileEncryptDlg::OnClickedButtonFileEncrypt()
 		{
 			MessageBox(TEXT("비밀번호가 너무 깁니다"), TEXT("오류"),
 				MB_OK | MB_ICONERROR);
+			result.Close();
 			::DeleteFile(FilePath + ".pecr");
 			return;
 		}
@@ -220,7 +223,6 @@ void CFileEncryptDlg::OnClickedButtonFileEncrypt()
 	/* 파일 콘텐츠 암호화 */
 	
 	CIOProgress* progress = new CIOProgress();
-	UCHAR normalkeysha[64] = "";
 	UINT pNormalkey = 0;
 
 	progress->Create(IDD_DIALOG_IO_PROGRESS, AfxGetMainWnd());
@@ -228,58 +230,53 @@ void CFileEncryptDlg::OnClickedButtonFileEncrypt()
 	progress->SetInfo(original.GetLength());
 
 	str = input.normalkey;
-	SHA256_Encrypt((UCHAR*)str.GetBuffer(), strlen(str.GetBuffer()), normalkeysha);
 
-	UINT original_length = original.GetLength();
-	UINT BUFFER_SIZE = original.GetLength() / 100;
+	int original_length = original.GetLength();
 
-	if (original_length / 100 > 639999) // 64KB 이상이면
-		BUFFER_SIZE = 639999; // Read함수의 크기 제한을 넘으므로 안전하게 설정.
-	else if (original_length / 100 == 0) // 100B 미만이면
-		BUFFER_SIZE = 1;
-	else
-		BUFFER_SIZE = original_length / 100;
-
-	char* buff = new char[BUFFER_SIZE];
+	UCHAR* buff = new UCHAR[AES128_BLOCK + 1];
 	MSG msg;
-
+	AES aeskey;
+	UCHAR cipher_key[16] = "";
+	UCHAR normalsha[33] = "";
 	try {
-		UINT i = 0;
-		for (i = 0; i < original_length - BUFFER_SIZE; i += BUFFER_SIZE)
+		int i = 0;
+		// 일반키를 SHA256으로 해쉬 후
+		SHA256_Encrypt((UCHAR*)str.GetBuffer(), strlen(str.GetBuffer()), normalsha);
+		for (i = 0; i < AES128_BLOCK; i++) 
+			cipher_key[i] = normalsha[i]; // 해쉬값으로 cipher key 구성
+
+		aeskey.KeySchedule(cipher_key);
+
+		for (i = 0; i < (original_length - AES128_BLOCK); i += AES128_BLOCK)
 		{
-			memset(buff, 0, BUFFER_SIZE);
+			memset(buff, 0, AES128_BLOCK + 1);
 			original.Seek(i, CFile::begin);
-			original.Read(buff, BUFFER_SIZE);
+			original.Read(buff, AES128_BLOCK);
+			aeskey.Encrypt(buff, buff);
 
-			for (int j = 0; j < BUFFER_SIZE; j++)
-			{
-				buff[j] = buff[j] ^ normalkeysha[pNormalkey++];
-
-				if (pNormalkey >= 32)
-					pNormalkey = 0;
-			}
-			result.Write(buff, BUFFER_SIZE);
-			progress->OffsetInfo(BUFFER_SIZE);
+			result.Write(buff, AES128_BLOCK);
+			progress->OffsetInfo(AES128_BLOCK);
 
 			PeekMessage(&msg, NULL, NULL, NULL, PM_REMOVE);
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		}
-		memset(buff, 0, BUFFER_SIZE);
+		memset(buff, 0, AES128_BLOCK + 1);
 		original.Seek(i, CFile::begin);
-		original.Read(buff, BUFFER_SIZE);
+		original.Read(buff, AES128_BLOCK);
+		/* 
+		 * 암호 블럭 크기가 안맞춰질 경우를 고려,
+		 * 쓰레기 데이터를 집어넣어 블럭 크기를 맞추고
+		 */
+		int garbage_length = AES128_BLOCK - original.GetLength() % AES128_BLOCK;
+		aeskey.Encrypt(buff, buff);
 
-		UINT last_length = original_length - i;
+		result.Write(buff, AES128_BLOCK);
+		progress->OffsetInfo(AES128_BLOCK);
 
-		for (UINT j = 0; j < last_length; j++)
-		{
-			buff[j] = buff[j] ^ normalkeysha[pNormalkey++];
-
-			if (pNormalkey >= 32)
-				pNormalkey = 0;
-		}
-		result.Write(buff, last_length);
-		progress->OffsetInfo(last_length);
+		// 쓰레기 데이터의 크기를 파일 맨 끝에 삽입함
+		letter[0] = garbage_length;
+		result.Write(letter, 1);
 	}
 	catch (CException* ex)
 	{
@@ -316,6 +313,7 @@ void CFileEncryptDlg::OnClickedButtonFileDecrypt()
 	RSA key;
 	char letter[1] = "";
 	UINT FileContentStart = 0;
+	CStringA str;
 
 	if (input.DoModal() != IDOK)
 		return;
@@ -409,8 +407,9 @@ void CFileEncryptDlg::OnClickedButtonFileDecrypt()
 			return;
 		}
 
+		// ascii 7문자도 더해버렸으므로 빼줘야함
 		digit /= 10;
-		e_normalkey -= digit * (letter[0] - 48);
+		e_normalkey -= digit * (letter[0] - 0x30);
 		BigInteger d_normalkey = key.Decrypt(e_normalkey); // 일반키 복호화
 		/*
 		 * 복호화된 일반키는 각각의 바이너리가 하나의 수로 합쳐져있어 이를 분리하는 작업이 필요함.
@@ -455,16 +454,14 @@ void CFileEncryptDlg::OnClickedButtonFileDecrypt()
 
 	/* 파일 콘텐츠 복호화 */
 
-	UCHAR normalkeysha[64] = "";
 	UINT pNormalkey = 0;
 	CIOProgress* progress = new CIOProgress();
+	UCHAR cipher_key[16] = "";
+	AES aeskey;
 
 	progress->Create(IDD_DIALOG_IO_PROGRESS, AfxGetMainWnd());
 	progress->ShowWindow(SW_SHOW);
 	progress->SetInfo(original.GetLength() - original.GetPosition());
-
-	CStringA str(input.normalkey);
-	SHA256_Encrypt((UCHAR*)str.GetBuffer(), strlen(str.GetBuffer()), normalkeysha);
 
 	if (input.KeyOpt == 1)
 	{
@@ -475,56 +472,52 @@ void CFileEncryptDlg::OnClickedButtonFileDecrypt()
 		}
 	}
 
-	UINT original_length = original.GetLength();
-	UINT BUFFER_SIZE = 0;
+	int original_length = original.GetLength();
 
-	if (original_length / 100 > 639999) // 64KB 이상이면
-		BUFFER_SIZE = 639999;
-	else if (original_length / 100 == 0) // 100B 미만이면
-		BUFFER_SIZE = 1;
-	else
-		BUFFER_SIZE = original_length / 100;
-
-	char* buff = new char[BUFFER_SIZE];
-
+	UCHAR* buff = new UCHAR[AES128_BLOCK + 1];
+	UCHAR normalsha[33] = "";
 	try {
 		MSG msg;
-		UINT i = 0;
-		for (i = FileContentStart; i < original_length - BUFFER_SIZE; i += BUFFER_SIZE)
+		int i = 0;
+
+		str = input.normalkey;
+		SHA256_Encrypt((BYTE*)str.GetBuffer(), strlen(str.GetBuffer()), normalsha);
+		for (i = 0; i < AES128_BLOCK; i++)
+			cipher_key[i] = normalsha[i]; // 해쉬값으로 cipher key 구성
+
+		aeskey.KeySchedule(cipher_key);
+
+		for (i = FileContentStart; i < original_length - 2 * AES128_BLOCK; i += AES128_BLOCK)
 		{
-			memset(buff, 0, BUFFER_SIZE);
+			memset(buff, 0, AES128_BLOCK + 1);
 			original.Seek(i, CFile::begin);
-			original.Read(buff, BUFFER_SIZE);
+			original.Read(buff, AES128_BLOCK);
 
-			for (int j = 0; j < BUFFER_SIZE; j++)
-			{
-				buff[j] = buff[j] ^ normalkeysha[pNormalkey++];
+			aeskey.Decrypt(buff, buff);
 
-				if (pNormalkey >= 32)
-					pNormalkey = 0;
-			}
-			result.Write(buff, BUFFER_SIZE);
-			progress->OffsetInfo(BUFFER_SIZE);
+			result.Write(buff, AES128_BLOCK);
+			progress->OffsetInfo(AES128_BLOCK);
 
 			PeekMessage(&msg, NULL, NULL, NULL, PM_REMOVE);
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		}
-		memset(buff, 0, BUFFER_SIZE);
+		memset(buff, 0, AES128_BLOCK + 1);
 		original.Seek(i, CFile::begin);
-		original.Read(buff, BUFFER_SIZE);
+		original.Read(buff, AES128_BLOCK);
+		aeskey.Decrypt(buff, buff);
 
-		UINT last_length = original_length - i;
+		/*
+		 * 암호블럭 크기를 맞추기 위해 어쩔수 없이 끼워넣은
+		 * 쓰레기 데이터의 크기를 읽어들임
+		 */
+		i += AES128_BLOCK;
+		original.Seek(i, CFile::begin);
+		original.Read(letter, 1);
 
-		for (UINT j = 0; j < last_length; j++)
-		{
-			buff[j] = buff[j] ^ normalkeysha[pNormalkey++];
-
-			if (pNormalkey >= 32)
-				pNormalkey = 0;
-		}
-		result.Write(buff, last_length);
-		progress->OffsetInfo(last_length);
+		// 쓰레기 데이터의 크기만큼 결과에서 제외시킴
+		result.Write(buff, AES128_BLOCK - letter[0]);
+		progress->OffsetInfo(AES128_BLOCK - letter[0]);
 	}
 	catch (CException* ex)
 	{

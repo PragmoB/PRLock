@@ -44,6 +44,7 @@ END_MESSAGE_MAP()
 
 // CEnvironmentSetDlg 메시지 처리기
 
+const TCHAR* version = TEXT("2.1.3");
 
 int CEnvironmentSetDlg::update()
 {
@@ -51,7 +52,6 @@ int CEnvironmentSetDlg::update()
 
 	CFile EnvData;
 	TCHAR dir[50] = TEXT("");
-	const TCHAR* version = TEXT("2.1.3");
 	CFileException eex;
 
 	CString str;
@@ -102,7 +102,7 @@ int CEnvironmentSetDlg::get()
 	GetEnvironmentVariable(TEXT("APPDATA"), dir, 50);
 	str = dir;
 
-	if (!EnvData.Open(str + TEXT("\\PRLock 1.1.2\\EnvironmentSet.ini"),
+	if (!EnvData.Open(str + TEXT("\\PRLock ") + version + TEXT("\\EnvironmentSet.ini"),
 		CFile::modeRead | CFile::shareExclusive | CFile::typeBinary, &eex))
 		return 0;
 

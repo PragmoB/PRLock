@@ -17,6 +17,7 @@ RSA::~RSA()
 
 void RSA::SetKeyAuto(int bitlength)
 {
+	srand((UINT)time(NULL));
 	BigInteger prime1, prime2, rand, maxlength = 1;
 	for (int i = 0; i < bitlength; i++)
 		maxlength *= 2;
@@ -40,7 +41,6 @@ void RSA::SetKeyAuto(int bitlength)
 void RSA::SetKey(BigInteger prime1, BigInteger prime2)
 {
 	BigInteger EulerN, temp;
-	srand((UINT)time(NULL));
 
 	e = NULL;
 	d = NULL;
@@ -52,7 +52,7 @@ void RSA::SetKey(BigInteger prime1, BigInteger prime2)
 		BigInteger g, y, x;
 
 		std::tie(g, x, y) = extended_euclidean(i, EulerN);
-		if (g == 1)
+		if (g == 1) // e와 오일러N값은 서로소여야함
 			if (x > 1 && x < EulerN)
 			{
 
@@ -73,6 +73,38 @@ BigInteger RSA::GetPrime(BigInteger prime)
 
 	for (; !isPrime(prime); prime += 2);
 	return prime;
+}
+
+BOOL RSA::Miller_Rabin(BigInteger n)
+{
+	if (n % 2 == 0) // 짝수면 걸러야함
+		return false;
+
+	int a[] = { 2, 0 };
+	BigInteger temp = n - 1, d = (n - 1) * 2;
+	for (temp = n - 1; temp * 2 == d; temp /= 2) // d가 홀수가 되는 순간 조건식이 성립하지 않게됨
+		d = temp;
+
+	BOOL success = FALSE; // 아래의 조건을 한 번이라도 통과했는가?
+	for (int i = 0; a[i] != 0; i++)
+	{
+		success = FALSE;
+
+		if (fastmod(a[i], d, n) == 1) // a^d ≡ 1 (mod n)
+			continue;
+
+		for (BigInteger k = 1; d * k != n - 1; k *= 2)
+		{
+			if (fastmod(a[i], d * k, n) == n - 1) // a^(d * k) ≡ -1 (mod n)
+			{
+				success = TRUE;
+				break;
+			}
+		}
+		if (!success) // 위의 조건을 한번이라도 만족하지 못했다면
+			return FALSE; // 합성수임
+	}
+	return TRUE; // 모든 a에 대해 다 통과했다면 밀러 라빈 통과
 }
 
 BOOL RSA::isPrime(BigInteger num)
@@ -96,14 +128,16 @@ BOOL RSA::isPrime(BigInteger num)
 		return FALSE;
 
 	// 페르마의 소수 정리 : 2차 거름
-	if (fastmod(2, num - 1, num) != 1)
-		return FALSE;
+	int a_arr[] = { 2, 3, 5 };
+	for(int a : a_arr)
+		if (fastmod(a, num - 1, num) != 1)
+			return FALSE;
 
 
 	// 무차별 대입 : 3차 거름
 
 	for (root = 1; (num / root) > root; root++); // num의 제곱근을 구함.
-	for (BigInteger i = 2; i < root; i++)
+	for (BigInteger i = 2; i <= root; i++)
 	{
 		if (num % i == 0) // 나누어 떨어지면 소수가 아님
 			return FALSE;
@@ -112,7 +146,10 @@ BOOL RSA::isPrime(BigInteger num)
 	return TRUE;
 }
 
-
+/*
+ * GCD(a, b) = g 라고 할 때 ax + by = g를 만족하는 x와 y값을 구하는 과정
+ * 
+ */
 std::tuple<BigInteger, BigInteger, BigInteger> RSA::extended_euclidean(BigInteger a, BigInteger b) {
 	if (b == 0)
 		return std::make_tuple(a, 1, 0);
