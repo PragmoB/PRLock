@@ -6,14 +6,18 @@ Language MFC
 Built with Visual Studio 2017
 
 I'm afraid I didn't use git before.
-so, release 1.0.0, 1.0.1 and 1.0.2 don't exist now :(
+so release 1.0.0, 1.0.1 and 1.0.2 don't exist now :(
 
-Usage
+Release 2.1.3
 
-일반키 NormalKey : The password encrypting source file
+Updates
 
-RSA Encrypt/Decrypt key file(further option, not necessarily required) : The key encrypting NormalKey
+1. UI improved
+ - can set RSA key length when creating key
+ - can save environment settings by yourself click the button
+ - can drag-and-drop files into file selection window
 
-마스터키 MasterKey : The password encrypting RSA key file
+2. encrypt algorithm changed
+ - simple xor per block -> aes128
 
-you can decrypt encrypted file by both NormalKey or MasterKey after register RSA Encrypt/Decrypt key path in environment settings if you encrypted NormalKey by RSA key file.
+3. and other security updates

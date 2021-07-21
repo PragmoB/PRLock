@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "RSA.h"
-#include "BigInteger.h"
+#include "BigInteger/BigInteger.h"
 
 #include <ctime>
 #include <cstdlib>

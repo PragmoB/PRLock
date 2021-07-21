@@ -111,7 +111,7 @@ BOOL CPragEncryptionDlg::OnInitDialog()
 	Main.GetWindowRect(&size);
 
 	Main.InsertItem(0, TEXT("파일 설정"), TCIF_TEXT);
-	Main.InsertItem(1, TEXT("RSA키 설정"), TCIF_TEXT);
+	Main.InsertItem(1, TEXT("마스터키 생성"), TCIF_TEXT);
 	Main.InsertItem(2, TEXT("환경 설정"), TCIF_TEXT);
 	Main.SetCurSel(0);
 

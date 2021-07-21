@@ -7,7 +7,7 @@
 #include "afxdialogex.h"
 
 #include "RSA.h"
-#include "KISA_SHA256.h"
+#include "KISA_SHA256/KISA_SHA256.h"
 
 // CKeyEncryptDlg 대화 상자
 

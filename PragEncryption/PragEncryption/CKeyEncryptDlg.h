@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "BigInteger.h"
+#include "BigInteger/BigInteger.h"
 
 // CKeyEncryptDlg 대화 상자
 

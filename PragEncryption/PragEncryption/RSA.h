@@ -1,7 +1,7 @@
 #pragma once
 
 #include "stdafx.h"
-#include "BigInteger.h"
+#include "BigInteger/BigInteger.h"
 
 #include <tuple>
 

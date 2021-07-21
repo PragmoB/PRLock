@@ -48,7 +48,7 @@ void CInputEncryptDlg::OnBnClickedButtonOk()
 
 	if (normalkey == "")
 	{
-		MessageBox(TEXT("일반키를 입력해주세요"), TEXT("알림"), MB_OK | MB_ICONINFORMATION);
+		MessageBox(TEXT("비밀번호를 입력해주세요"), TEXT("알림"), MB_OK | MB_ICONINFORMATION);
 		return;
 	}
 

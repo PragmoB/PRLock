@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "BigInteger.h"
+#include "BigInteger/BigInteger.h"
 
 // CFileEncryptDlg 대화 상자
 
@@ -26,15 +26,10 @@ public:
 	afx_msg void OnClickedButtonFilePath();
 	afx_msg void OnClickedButtonFileEncrypt();
 	afx_msg void OnClickedButtonFileDecrypt();
-//	afx_msg void OnEnChangeEdit2();
-//	afx_msg void OnBnClickedButtonKeyPath();
-//	CString KeyPath;
 private:
 	BigInteger AccessKey(CFile* file, const UCHAR* masterkey);
 	int GetFindCharCount(CString& parm_string, char parm_find_char);
 public:
-//	CButton buttFileEncrypt;
-//	CButton buttFileDecrypt;
 	virtual BOOL OnInitDialog();
 	CBitmapButton buttFileEncrypt;
 	CBitmapButton buttFileDecrypt;
