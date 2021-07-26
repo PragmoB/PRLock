@@ -1,23 +1,86 @@
-# PRLock
-Free file encryptor
+# PRLock : free file encryptor
 
-Language MFC
+## Build Settings
+> tool : Visual Studio 2017
+> 
+> framework : MFC
 
-Built with Visual Studio 2017
-
-I'm afraid I didn't use git before.
-so release 1.0.0, 1.0.1 and 1.0.2 don't exist now :(
-
-Release 2.1.3
-
-Updates
-
-1. UI improved
- - can set RSA key length when creating key
- - can save environment settings by yourself click the button
- - can drag-and-drop files into file selection window
-
-2. encrypt algorithm changed
- - simple xor per block -> aes128
-
-3. and other security updates
+## Usage
+> ### 기본 암/복호화
+>> 파일 선택 후 비밀번호를 입력하고 암호화 합니다
+>> 
+>> ![일반키 암호화](https://user-images.githubusercontent.com/67177785/126548432-e5c0b07c-9d44-449d-a5d9-4c7401161dfe.PNG)
+>> 
+>> **그림 1 | 비밀번호로 암호화**
+>> 
+>> 결과적으로 테스트.txt.pecr을 생성합니다
+>>
+>> 이렇게 암호화된 파일을 비밀번호를 입력해서 복호화 할 수 있습니다
+>> 
+>>![일반키 복호화](https://user-images.githubusercontent.com/67177785/126549106-b7e7f6aa-d044-4125-b4fb-e076c702a5ea.PNG)
+>>
+>> **그림 2 | 비밀번호로 복호화**
+> ### 마스터키 기능
+>>
+>> 비밀번호 분실에 대비하기 위해 마스터키를 만들어봅시다
+>> 
+>> 키 길이가 길어질수록 보안이 견고해지지만, 그만큼 생성 시간도 (빈 말이 아니라 상상을 초월함)오래 걸립니다
+>> 
+>> 적당한 값으로 설정한 후 경로를 선택하고 키 파일을 생성합니다
+>>
+>>
+>> ![마스터키 생성중](https://user-images.githubusercontent.com/67177785/126549247-449f051f-b6d7-4324-a71a-9aff031871d6.PNG)
+>> 
+>> **그림 3 | 마스터키 생성중**
+>>
+>> 응답 없음으로 뜨지만 걱정 마세요, 제대로 작동 중입니다
+>> 
+>> ![키 파일 생성 확인](https://user-images.githubusercontent.com/67177785/126549268-ac447802-bb05-4346-b526-edf56194593d.PNG)
+>>
+>> **그림 4  | 키 파일 생성 확인**
+>>
+>> 암호화 키, 복호화 키 한 쌍이 잘 생성 됬습니다
+>> 
+>> 암호화 키는 파일을 암호화 할 때 사용하고, 복호화 키는 복호화 할 때 사용합니다
+>> 
+>> 복호화 키 정보는 중요하므로 USB나 아니면 다른 어딘가에 숨기는게 좋습니다
+>> 
+>> 환경 설정 탭에서 생성된 키 파일의 경로를 붙여넣고 저장합니다
+>>
+>> ![마스터키 환경설정](https://user-images.githubusercontent.com/67177785/126549316-54986771-fe54-46e6-b688-c4263473864c.PNG)
+>> 
+>> **그림 5 | 마스터키 환경 설정**
+>>
+>> 복호화 키 정보는 중요하므로 컴퓨터에서 삭제하고 어딘가에 숨겨놓았습니다
+>>
+>> 이제 파일을 암호화 할 때 마스터키를 등록할 수 있습니다
+>> 
+>> 마스터키를 등록하고 싶지 않다면 등록 안함 옵션을 체크해줍시다
+>>
+>> ![암호화시 마스터키 등록](https://user-images.githubusercontent.com/67177785/126549343-4142c997-0045-4ab8-960a-0050054c7d25.PNG)
+>> 
+>> **그림 6 | 암호화 시 마스터키 등록**
+>>
+>> 이런! 파일을 암호화했는데 비밀번호를 까먹었네요ㅠㅠ
+>> 
+>> 숨겨뒀던 복호화 키를 사용할 차례입니다
+>>
+>> 환경설정에서 복호화 키를 설정하고 마스터키로 복호화를 해봅시다
+>>
+>> ![마스터키로 복호화](https://user-images.githubusercontent.com/67177785/126549364-0f88993d-486c-4ea8-9cd2-7cfef4599f13.PNG)
+>> 
+>> **그림 7 | 마스터키로 복호화**
+>>
+>> 다행입니다
+>> 
+>> 암호화된 파일에 마스터키가 등록됬기에 비밀번호를 분실해도 복구 할 수 있었습니다
+>>
+> ### 비밀번호 길이
+>>
+>> 비밀번호 길이가 너무 길어 암호화를 거부하는 경우가 있습니다
+>> 
+>> 이는 마스터키를 등록할 때 마스터키의 길이가 비밀번호 길이보다 짧아 수학적인 오류가 발생한 것으로 해결방법은 다음과 같습니다 :
+>> 
+>> 1. 마스터키를 등록하지 않는다
+>> 2. 마스터키 길이를 늘인다
+>> 3. 비밀번호를 줄인다
