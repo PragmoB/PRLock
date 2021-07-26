@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "AES.h"
+#include "AES_Pragmo.h"
 #include <cstring>
 
 static const UCHAR SBOX[256] = {
@@ -44,7 +44,7 @@ static const UCHAR INVSBOX[256] = {
 
 // target을 times번 만큼 쉬프트 연산을 진행함
 // times의 부호에 따라 방향이 바뀜(왼쪽 : 음수, 오른쪽 : 양수)
-void AES::Shift(UCHAR* target, int times, int length)
+void AES_Pragmo::Shift(UCHAR* target, int times, int length)
 {
 	if (times >= length)
 		return;
@@ -70,17 +70,17 @@ void AES::Shift(UCHAR* target, int times, int length)
 	delete temp2;
 }
 
-void AES::AddRoundKey(UCHAR* state, const UCHAR* key, int length)
+void AES_Pragmo::AddRoundKey(UCHAR* state, const UCHAR* key, int length)
 {
 	for (int i = 0; i < length; i++)
 		state[i] ^= key[i];
 }
-void AES::SubBytes(UCHAR* state, const UCHAR* S_BOX, int length)
+void AES_Pragmo::SubBytes(UCHAR* state, const UCHAR* S_BOX, int length)
 {
 	for (int i = 0; i < length; i++)
 		state[i] = S_BOX[state[i]];
 }
-void AES::ShiftRows(UCHAR* state, BOOL inv = false)
+void AES_Pragmo::ShiftRows(UCHAR* state, BOOL inv = false)
 {
 	UCHAR row[4] = "";
 	for (int i = 0; i < 4; i++)
@@ -97,7 +97,7 @@ void AES::ShiftRows(UCHAR* state, BOOL inv = false)
 			state[i + 4 * j] = row[j];
 	}
 }
-void AES::MixColumn(UCHAR * data, size_t data_len)
+void AES_Pragmo::MixColumn(UCHAR * data, size_t data_len)
 {
 	if ((data_len % 4) != 0)
 		return;
@@ -118,7 +118,7 @@ void AES::MixColumn(UCHAR * data, size_t data_len)
 		data[3 + i] = res[3] ^ copy_arr[2] ^ copy_arr[1] ^ res[0] ^ copy_arr[0];
 	}
 }
-void AES::InvMixColumn(UCHAR * data, size_t data_len)
+void AES_Pragmo::InvMixColumn(UCHAR * data, size_t data_len)
 {
 	if ((data_len % 4) != 0)
 		return;
@@ -178,7 +178,7 @@ void AES::InvMixColumn(UCHAR * data, size_t data_len)
 	delete copy_data;
 }
 
-void AES::KeySchedule(const UCHAR* CipherKey){
+void AES_Pragmo::KeySchedule(const UCHAR* CipherKey){
 
 	memcpy(RoundKey[0], CipherKey, 16);
 	UCHAR row_1[4] = "", row_4[4] = "";
@@ -213,7 +213,7 @@ void AES::KeySchedule(const UCHAR* CipherKey){
 }
 
 
-void AES::Encrypt(const UCHAR* source, UCHAR* result)
+void AES_Pragmo::Encrypt(const UCHAR* source, UCHAR* result)
 {
 	memcpy(result, source, 16);
 	
@@ -235,7 +235,7 @@ void AES::Encrypt(const UCHAR* source, UCHAR* result)
 	AddRoundKey(result, RoundKey[10], 16);
 }
 
-void AES::Decrypt(const UCHAR* source, UCHAR* result)
+void AES_Pragmo::Decrypt(const UCHAR* source, UCHAR* result)
 {
 	memcpy(result, source, 16);
 	

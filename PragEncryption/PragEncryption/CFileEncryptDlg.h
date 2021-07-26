@@ -27,7 +27,7 @@ public:
 	afx_msg void OnClickedButtonFileEncrypt();
 	afx_msg void OnClickedButtonFileDecrypt();
 private:
-	BigInteger AccessKey(CFile* file, const UCHAR* masterkey);
+	BigInteger AccessKey(CFile* file);
 	int GetFindCharCount(CString& parm_string, char parm_find_char);
 public:
 	virtual BOOL OnInitDialog();

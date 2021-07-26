@@ -2,7 +2,7 @@
 
 #define AES128_BLOCK 16
 
-class AES {
+class AES_Pragmo {
 
 private:
 	UCHAR RoundKey[11][16];

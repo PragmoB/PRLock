@@ -7,7 +7,7 @@
 #include "PragEncryptionDlg.h"
 #include "afxdialogex.h"
 
-#include "RSA.h"
+//#include "RSA_Pragmo.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW

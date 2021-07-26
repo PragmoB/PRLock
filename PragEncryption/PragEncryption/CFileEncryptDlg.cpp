@@ -11,9 +11,9 @@
 #include "CIOProgress.h"
 #include "CEnvironmentSetDlg.h"
 
-#include "AES.h"
-#include "RSA.h"
-#include "KISA_SHA256/KISA_SHA256.h"
+#include "AES_Pragmo.h"
+#include "RSA_Pragmo.h"
+#include <openssl/sha.h>
 
 // CFileEncryptDlg 대화 상자
 
@@ -99,7 +99,7 @@ void CFileEncryptDlg::OnClickedButtonFileEncrypt()
 	}
 
 	CInputEncryptDlg input;
-	RSA key;
+	RSA_Pragmo key;
 	CEnvironmentSetDlg EnvSet;
 	char letter[1] = "";
 
@@ -168,8 +168,8 @@ void CFileEncryptDlg::OnClickedButtonFileEncrypt()
 
 		/* 마스터키 액세스 */
 
-		key.N = AccessKey(&N, NULL);
-		key.e = AccessKey(&e, NULL);
+		key.N = AccessKey(&N);
+		key.e = AccessKey(&e);
 
 		if (key.N == 0 || key.e == 0)
 		{
@@ -243,13 +243,17 @@ void CFileEncryptDlg::OnClickedButtonFileEncrypt()
 
 	UCHAR* buff = new UCHAR[BUFFER_SIZE + 1];
 	MSG msg;
-	AES aeskey;
+	AES_Pragmo aeskey;
 	UCHAR cipher_key[16] = "";
 	UCHAR normalsha[33] = "";
 	try {
 		int i = 0;
-		// 일반키를 SHA256으로 해쉬 후
-		SHA256_Encrypt((UCHAR*)str.GetBuffer(), strlen(str.GetBuffer()), normalsha);
+		// 비밀번호를 SHA256으로 해쉬 후
+		SHA256_CTX sha256;
+		SHA256_Init(&sha256);
+		SHA256_Update(&sha256, (UCHAR*)str.GetBuffer(), strlen(str.GetBuffer()));
+		SHA256_Final(normalsha, &sha256);
+
 		for (i = 0; i < AES128_BLOCK; i++) 
 			cipher_key[i] = normalsha[i]; // 해쉬값으로 cipher key 구성
 
@@ -331,7 +335,7 @@ void CFileEncryptDlg::OnClickedButtonFileDecrypt()
 
 	CInputDecryptDlg input;
 	CEnvironmentSetDlg EnvSet;
-	RSA key;
+	RSA_Pragmo key;
 	char letter[1] = "";
 	UINT FileContentStart = 0;
 	CStringA str;
@@ -408,8 +412,8 @@ void CFileEncryptDlg::OnClickedButtonFileDecrypt()
 			return;
 		}
 
-		key.N = AccessKey(&N, NULL);
-		key.d = AccessKey(&d, NULL);
+		key.N = AccessKey(&N);
+		key.d = AccessKey(&d);
 
 		if (key.N == 0 || key.d == 0)
 		{
@@ -486,7 +490,7 @@ void CFileEncryptDlg::OnClickedButtonFileDecrypt()
 	UINT pNormalkey = 0;
 	CIOProgress* progress = new CIOProgress();
 	UCHAR cipher_key[16] = "";
-	AES aeskey;
+	AES_Pragmo aeskey;
 
 	int BUFFER_SIZE = 0;
 	int original_length = original.GetLength();
@@ -525,7 +529,12 @@ void CFileEncryptDlg::OnClickedButtonFileDecrypt()
 		int i = 0;
 
 		str = input.normalkey;
-		SHA256_Encrypt((BYTE*)str.GetBuffer(), strlen(str.GetBuffer()), normalsha);
+
+		// 비밀번호를 SHA256으로 해쉬 후
+		SHA256_CTX sha256;
+		SHA256_Init(&sha256);
+		SHA256_Update(&sha256, (UCHAR*)str.GetBuffer(), strlen(str.GetBuffer()));
+		SHA256_Final(normalsha, &sha256);
 		for (i = 0; i < AES128_BLOCK; i++)
 			cipher_key[i] = normalsha[i]; // 해쉬값으로 cipher key 구성
 
@@ -585,7 +594,7 @@ void CFileEncryptDlg::OnClickedButtonFileDecrypt()
 		DeleteFile(FilePath);
 }
 
-BigInteger CFileEncryptDlg::AccessKey(CFile* file, const UCHAR* masterkey)
+BigInteger CFileEncryptDlg::AccessKey(CFile* file)
 {
 	// TODO: 여기에 구현 코드 추가.
 	UCHAR letter[1] = "";
@@ -595,16 +604,10 @@ BigInteger CFileEncryptDlg::AccessKey(CFile* file, const UCHAR* masterkey)
 
 	BigInteger result = 0;
 
-	if(masterkey != NULL) // 마스터키를 보호하는 비밀번호가 있다면
-		SHA256_Encrypt(masterkey, strlen((const char*)masterkey), masterkeysha);
-
 	try {
 		for (UINT i = 1; file->Read(letter, 1); i++)
 		{
 			int decrypted = letter[0] - 48;
-
-			if (masterkey != NULL) // 마스터키를 보호하는 비밀번호가 있다면 
-				decrypted = (letter[0] ^ masterkeysha[pMasterkey]);// 추가적인 복호화 연산을 해야함
 
 			// (마스터키 비밀번호를 등록 했을 경우만 해당)복호화했을때 데이터가 깨지면
 			if (decrypted < 0 || 9 < decrypted)

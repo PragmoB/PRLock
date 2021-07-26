@@ -6,8 +6,7 @@
 #include "CKeyEncryptDlg.h"
 #include "afxdialogex.h"
 
-#include "RSA.h"
-#include "KISA_SHA256/KISA_SHA256.h"
+#include "RSA_Pragmo.h"
 
 // CKeyEncryptDlg 대화 상자
 
@@ -90,7 +89,7 @@ void CKeyEncryptDlg::OnClickedButtonKeySet()
 
 	CFile N, e, d, N1;
 	CFileException eex;
-	RSA key;
+	RSA_Pragmo key;
 
 	MessageBox(TEXT("생성까지 조금만 기다려주세요"), TEXT("알림"), MB_OK);
 

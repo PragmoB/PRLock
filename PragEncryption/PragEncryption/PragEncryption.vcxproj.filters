@@ -30,9 +30,6 @@
     <ClInclude Include="Resource.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="RSA.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
     <ClInclude Include="CFileEncryptDlg.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
@@ -51,7 +48,10 @@
     <ClInclude Include="CEnvironmentSetDlg.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="AES.h">
+    <ClInclude Include="RSA_Pragmo.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="AES_Pragmo.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
@@ -63,9 +63,6 @@
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="stdafx.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="RSA.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="CFileEncryptDlg.cpp">
@@ -86,7 +83,10 @@
     <ClCompile Include="CEnvironmentSetDlg.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="AES.cpp">
+    <ClCompile Include="RSA_Pragmo.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="AES_Pragmo.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
