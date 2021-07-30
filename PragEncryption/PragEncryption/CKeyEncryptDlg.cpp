@@ -75,7 +75,7 @@ void CKeyEncryptDlg::OnClickedButtonKeySet()
 {
 	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
 	UpdateData(TRUE);
-	if (key_length < 16)
+	if (key_length < 30)
 	{
 		MessageBox(TEXT("키 길이가 너무 작습니다"), TEXT("알림"), MB_OK | MB_ICONWARNING );
 		return;

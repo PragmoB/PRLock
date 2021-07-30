@@ -124,7 +124,7 @@ void RSA_Pragmo::SetKey(BigInteger prime1, BigInteger prime2)
 	N = prime1 * prime2;
 	EulerN = (prime1 - 1) * (prime2 - 1);
 
-	for (BigInteger i = 3; i < EulerN; i++)
+	for (BigInteger i = 65557; i < EulerN; i++)
 	{
 		BigInteger g, y, x;
 
@@ -255,30 +255,25 @@ BigInteger RSA_Pragmo::Decrypt(BigInteger C)
 	return result;
 }
 
-/*
-BigInteger RSA_Pragmo::BigRand(int mostDigit, int leastDigit)
+BigInteger RSA_Pragmo::BigRand(BigInteger mod)
 {
 	// TODO: 여기에 구현 코드 추가.
-
-	if (leastDigit > mostDigit)
+	if (mod <= 0)
 		return BigInteger(0);
 
 	srand((UINT)time(NULL));
 
-	int digit;
-	BigInteger temp = 1;
-	BigInteger result = 0;
-	digit = rand() % (mostDigit - leastDigit + 1) + leastDigit;
+	BigInteger sum = 0, digit;
+	const BigInteger i32_1 = 0x80000000 * 0x2;
+	for (digit = 1; sum < mod; digit *= i32_1)
+		sum += digit * (UINT)rand();
 
-	for (int i = 1; i < digit; i++) // digit = 자릿수
-		temp *= 10;
+	sum += digit * (UINT)rand();
 
-	for (; temp >= 1; temp /= 10)
-		result += temp * (rand() % 9 + 1);
-
-	return result;
+	return sum % mod;
 }
 
+/*
 BigInteger RSA_Pragmo::GetPrime(BigInteger prime)
 {
 	// TODO: 여기에 구현 코드 추가.

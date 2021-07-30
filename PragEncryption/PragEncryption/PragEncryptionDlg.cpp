@@ -31,10 +31,6 @@ public:
 // 구현입니다.
 protected:
 	DECLARE_MESSAGE_MAP()
-public:
-//	RSA KeyDecrypt();
-//	virtual BOOL OnInitDialog();
-//	virtual BOOL OnInitDialog();
 };
 
 CAboutDlg::CAboutDlg() : CDialogEx(IDD_ABOUTBOX)

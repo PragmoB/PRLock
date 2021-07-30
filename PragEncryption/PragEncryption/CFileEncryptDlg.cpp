@@ -14,6 +14,7 @@
 #include "AES_Pragmo.h"
 #include "RSA_Pragmo.h"
 #include <openssl/sha.h>
+#include "libbcrypt/bcrypt.h"
 
 // CFileEncryptDlg 대화 상자
 
@@ -97,6 +98,21 @@ void CFileEncryptDlg::OnClickedButtonFileEncrypt()
 			TEXT("알림"), MB_OK | MB_ICONINFORMATION);
 		return;
 	}
+	;
+	CFile original, result;
+	CFileException eex;
+
+	if (!original.Open(FilePath,
+		CFile::modeRead | CFile::shareExclusive | CFile::typeBinary, &eex))
+	{
+		eex.ReportError();
+		return;
+	}
+	if (original.GetLength() == 0)
+	{
+		MessageBox(TEXT("파일 내용이 없습니다"), TEXT("알림"), MB_OK | MB_ICONERROR);
+		return;
+	}
 
 	CInputEncryptDlg input;
 	RSA_Pragmo key;
@@ -116,8 +132,6 @@ void CFileEncryptDlg::OnClickedButtonFileEncrypt()
 	}
 
 	CFile N, e;
-	CFile original, result;
-	CFileException eex;
 
 	/* 타겟 파일 액세스, 암호화(.pecr)파일 생성. */
 
@@ -134,14 +148,7 @@ void CFileEncryptDlg::OnClickedButtonFileEncrypt()
 			}
 	}
 	AfxExtractSubString(FileName, FilePath, letternum, '\\');
-	
 
-	if (!original.Open(FilePath,
-		CFile::modeRead | CFile::shareExclusive | CFile::typeBinary, &eex))
-	{
-		eex.ReportError();
-		return;
-	}
 	if (!result.Open(FilePath + TEXT(".pecr"),
 		CFile::modeWrite | CFile::modeCreate | CFile::shareExclusive | CFile::typeBinary, &eex))
 	{
@@ -176,7 +183,7 @@ void CFileEncryptDlg::OnClickedButtonFileEncrypt()
 			MessageBox(TEXT("마스터키 액세스 실패"), TEXT("알림"),
 				MB_OK | MB_ICONERROR);
 			result.Close();
-			::DeleteFile(FilePath + ".pecr");
+			DeleteFile(FilePath + ".pecr");
 			return;
 		}
 		str = input.normalkey;
@@ -204,7 +211,7 @@ void CFileEncryptDlg::OnClickedButtonFileEncrypt()
 			MessageBox(TEXT("비밀번호가 너무 길어 마스터키를 등록할 수 없습니다\n마스터키 길이를 늘려주세요"), TEXT("오류"),
 				MB_OK | MB_ICONERROR);
 			result.Close();
-			::DeleteFile(FilePath + ".pecr");
+			DeleteFile(FilePath + ".pecr");
 			return;
 		}
 		BigInteger nextnum, num = key.Encrypt(m); // 비밀번호를 암호화 한 결과물 num
@@ -219,14 +226,25 @@ void CFileEncryptDlg::OnClickedButtonFileEncrypt()
 
 	letter[0] = 7;
 	result.Write(letter, 1);
+
+	/* 비밀번호 체크용 bcrypt 암호화 */
+
+	char bcrypt_hashed[100] = "";
+
+	str = input.normalkey;
+	strcpy_s(bcrypt_hashed, 100, bcrypt::generateHash(str.GetBuffer(), 11).c_str());
+
+	result.Write(bcrypt_hashed, strlen(bcrypt_hashed));
+	letter[0] = 7; // ascii 7문자로 데이터 끝을 명시
+	result.Write(letter, 1);
 	
 	/* 파일 콘텐츠 암호화 */
 	
-	int original_length = original.GetLength();
-	int BUFFER_SIZE = 0;
+	ULONGLONG original_length = original.GetLength();
+	UINT BUFFER_SIZE = 0;
 
-	if (original_length / 100 >= 640000) // 64KB 이상이면
-		BUFFER_SIZE = 639999 - (639999 % AES128_BLOCK); // Read함수의 크기 제한을 넘으므로 안전하게 설정.
+	if (original_length / 100 >= 64000) // 64KB 이상이면
+		BUFFER_SIZE = 63999 - (63999 % AES128_BLOCK); // Read함수의 크기 제한을 넘으므로 안전하게 설정.
 	else if (original_length / 1600 == 0) // 1600B 미만이면
 		BUFFER_SIZE = AES128_BLOCK;
 	else // 그 사이면
@@ -238,28 +256,25 @@ void CFileEncryptDlg::OnClickedButtonFileEncrypt()
 	progress->ShowWindow(SW_SHOW);
 	progress->SetInfo(original.GetLength());
 
-	str = input.normalkey;
-
-
 	UCHAR* buff = new UCHAR[BUFFER_SIZE + 1];
 	MSG msg;
-	AES_Pragmo aeskey;
-	UCHAR cipher_key[16] = "";
-	UCHAR normalsha[33] = "";
+
 	try {
 		int i = 0;
+		AES_Pragmo aeskey;
+		UCHAR normalsha[33] = "";
+
 		// 비밀번호를 SHA256으로 해쉬 후
+		str = input.normalkey;
 		SHA256_CTX sha256;
 		SHA256_Init(&sha256);
 		SHA256_Update(&sha256, (UCHAR*)str.GetBuffer(), strlen(str.GetBuffer()));
 		SHA256_Final(normalsha, &sha256);
 
-		for (i = 0; i < AES128_BLOCK; i++) 
-			cipher_key[i] = normalsha[i]; // 해쉬값으로 cipher key 구성
+		// 해쉬 값으로 암호화 키 구성
+		aeskey.KeySchedule(normalsha);
 
-		aeskey.KeySchedule(cipher_key);
-
-		for (i = 0; i < (original_length - BUFFER_SIZE); i += BUFFER_SIZE)
+		for (i = 0; i < (signed long long)(original_length - BUFFER_SIZE); i += BUFFER_SIZE)
 		{
 			memset(buff, 0, BUFFER_SIZE + 1);
 			original.Seek(i, CFile::begin);
@@ -271,6 +286,20 @@ void CFileEncryptDlg::OnClickedButtonFileEncrypt()
 			result.Write(buff, BUFFER_SIZE);
 			progress->OffsetInfo(BUFFER_SIZE);
 
+			// progress 창이 꺼졌을때
+			if (!progress->isValid) 
+			{
+				delete progress;
+				delete buff;
+
+				original.Close();
+				result.Close();
+
+				MessageBox(TEXT("암호화가 취소되었습니다"), TEXT("알림"), MB_OK | MB_ICONINFORMATION);
+				DeleteFile(FilePath + TEXT(".pecr"));
+				return;
+			}
+
 			PeekMessage(&msg, NULL, NULL, NULL, PM_REMOVE);
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
@@ -281,7 +310,7 @@ void CFileEncryptDlg::OnClickedButtonFileEncrypt()
 		BUFFER_SIZE = original.Read(buff, BUFFER_SIZE);
 
 		// 마지막 블럭은 남겨놓고 암호화 연산 진행
-		for (int j = 0; j < BUFFER_SIZE - AES128_BLOCK; j += AES128_BLOCK)
+		for (int j = 0; j < (signed int)(BUFFER_SIZE - AES128_BLOCK); j += AES128_BLOCK)
 			aeskey.Encrypt(buff + j, buff + j);
 
 		/* 
@@ -340,9 +369,6 @@ void CFileEncryptDlg::OnClickedButtonFileDecrypt()
 	UINT FileContentStart = 0;
 	CStringA str;
 
-	if (input.DoModal() != IDOK)
-		return;
-
 	EnvSet.get();
 	/* 원본 파일(original) 액세스, 복호화된 파일(result) 생성 */
 
@@ -386,6 +412,14 @@ void CFileEncryptDlg::OnClickedButtonFileDecrypt()
 		eex.ReportError();
 		return;
 	}
+	if (original.GetLength() == 0)
+	{
+		MessageBox(TEXT("파일 내용이 없습니다"), TEXT("알림"), MB_OK | MB_ICONERROR);
+		return;
+	}
+
+	if (input.DoModal() != IDOK)
+		return;
 
 	if (input.KeyOpt == 0) // 마스터키 복호화 옵션이면
 	{
@@ -467,12 +501,6 @@ void CFileEncryptDlg::OnClickedButtonFileDecrypt()
 			TEXT("비밀번호 복호화 완료"), MB_YESNO) == IDNO)
 			return;
 	}
-	if (!result.Open(FileDir + DecryptedFileName,
-		CFile::modeCreate | CFile::modeWrite | CFile::shareExclusive | CFile::typeBinary, &eex)) // 복호화될 파일 생성
-	{
-		eex.ReportError();
-		return;
-	}
 	/* 콘텐츠 시작지점 계산 */
 	{
 		UINT i;
@@ -485,19 +513,43 @@ void CFileEncryptDlg::OnClickedButtonFileDecrypt()
 		FileContentStart = i;
 	}
 
+	/* bcrypt로 비밀번호 일치 여부 확인 */
+
+	char bcrypt_hashed[100] = "";
+	original.Seek(FileContentStart, CFile::begin);
+	original.Read(bcrypt_hashed, 100);
+	
+	for (int i = 0; i < 100; i++)
+		if (bcrypt_hashed[i] == 7)
+			bcrypt_hashed[i] = 0;
+
+	FileContentStart += strlen(bcrypt_hashed) + 1;
+
+	str = input.normalkey;
+	if (!bcrypt::validatePassword(std::string(str.GetBuffer()), std::string(bcrypt_hashed)))
+	{
+		MessageBox(TEXT("비밀번호가 일치하지 않습니다"), TEXT("알림"), MB_OK | MB_ICONERROR);
+		return;
+	}
+
 	/* 파일 콘텐츠 복호화 */
+
+	if (!result.Open(FileDir + DecryptedFileName,
+		CFile::modeCreate | CFile::modeWrite | CFile::shareExclusive | CFile::typeBinary, &eex)) // 복호화될 파일 생성
+	{
+		eex.ReportError();
+		return;
+	}
 
 	UINT pNormalkey = 0;
 	CIOProgress* progress = new CIOProgress();
-	UCHAR cipher_key[16] = "";
-	AES_Pragmo aeskey;
 
-	int BUFFER_SIZE = 0;
-	int original_length = original.GetLength();
-	int buffer_module;
+	UINT BUFFER_SIZE = 0;
+	ULONGLONG original_length = original.GetLength();
+	UINT buffer_module;
 
-	if (original_length / 100 >= 640000) // 64KB 이상이면
-		BUFFER_SIZE = 639998 - (639998 % AES128_BLOCK); // Read함수의 크기 제한을 넘으므로 안전하게 설정.
+	if (original_length / 100 >= 64000) // 64KB 이상이면
+		BUFFER_SIZE = 63998 - (63998 % AES128_BLOCK); // Read함수의 크기 제한을 넘으므로 안전하게 설정.
 	else if (original_length / 1600 == 0) // 1600B 미만이면
 		BUFFER_SIZE = AES128_BLOCK;
 	else // 그 사이면
@@ -511,7 +563,7 @@ void CFileEncryptDlg::OnClickedButtonFileDecrypt()
 
 	progress->Create(IDD_DIALOG_IO_PROGRESS, AfxGetMainWnd());
 	progress->ShowWindow(SW_SHOW);
-	progress->SetInfo(original.GetLength() - original.GetPosition());
+	progress->SetInfo(original.GetLength() - FileContentStart);
 
 	if (input.KeyOpt == 1)
 	{
@@ -523,24 +575,25 @@ void CFileEncryptDlg::OnClickedButtonFileDecrypt()
 	}
 
 	UCHAR* buff = new UCHAR[BUFFER_SIZE + 1];
-	UCHAR normalsha[33] = "";
 	try {
 		MSG msg;
 		int i = 0;
 
 		str = input.normalkey;
 
+		AES_Pragmo aeskey;
+		UCHAR normalsha[33] = "";
+
 		// 비밀번호를 SHA256으로 해쉬 후
 		SHA256_CTX sha256;
 		SHA256_Init(&sha256);
 		SHA256_Update(&sha256, (UCHAR*)str.GetBuffer(), strlen(str.GetBuffer()));
 		SHA256_Final(normalsha, &sha256);
-		for (i = 0; i < AES128_BLOCK; i++)
-			cipher_key[i] = normalsha[i]; // 해쉬값으로 cipher key 구성
 
-		aeskey.KeySchedule(cipher_key);
+		// 해쉬값으로 복호화 키 구성
+		aeskey.KeySchedule(normalsha);
 
-		for (i = FileContentStart; i < original_length - buffer_module; i += BUFFER_SIZE)
+		for (i = FileContentStart; i < (signed long long)(original_length - buffer_module); i += BUFFER_SIZE)
 		{
 			memset(buff, 0, BUFFER_SIZE + 1);
 			original.Seek(i, CFile::begin);
@@ -552,6 +605,19 @@ void CFileEncryptDlg::OnClickedButtonFileDecrypt()
 			result.Write(buff, BUFFER_SIZE);
 			progress->OffsetInfo(BUFFER_SIZE);
 
+			if (!progress->isValid)
+			{
+				delete progress;
+				delete buff;
+
+				original.Close();
+				result.Close();
+
+				MessageBox(TEXT("복호화가 취소되었습니다"), TEXT("알림"), MB_OK | MB_ICONINFORMATION);
+				DeleteFile(FileDir + DecryptedFileName);
+				return;
+			}
+
 			PeekMessage(&msg, NULL, NULL, NULL, PM_REMOVE);
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
@@ -560,7 +626,7 @@ void CFileEncryptDlg::OnClickedButtonFileDecrypt()
 		original.Seek(i, CFile::begin);
 		BUFFER_SIZE = original.Read(buff, BUFFER_SIZE + 1);
 
-		for(i = 0;i < BUFFER_SIZE - AES128_BLOCK;i +=  AES128_BLOCK)
+		for(i = 0;i < (signed int)(BUFFER_SIZE - AES128_BLOCK);i +=  AES128_BLOCK)
 			aeskey.Decrypt(buff + i, buff + i);
 
 		/*
@@ -584,6 +650,7 @@ void CFileEncryptDlg::OnClickedButtonFileDecrypt()
 	}
 	progress->DestroyWindow();
 	delete progress;
+	delete buff;
 
 	original.Close();
 	result.Close();
