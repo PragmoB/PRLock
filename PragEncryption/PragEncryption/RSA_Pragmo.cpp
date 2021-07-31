@@ -8,7 +8,6 @@
 #include <tuple>
 #include <vector>
 
-
 RSA_Pragmo::RSA_Pragmo()
 {
 }
@@ -264,7 +263,8 @@ BigInteger RSA_Pragmo::BigRand(BigInteger mod)
 	srand((UINT)time(NULL));
 
 	BigInteger sum = 0, digit;
-	const BigInteger i32_1 = 0x80000000 * 0x2;
+	BigInteger i32_1 = 0x80000000;
+	i32_1 *= 2;
 	for (digit = 1; sum < mod; digit *= i32_1)
 		sum += digit * (UINT)rand();
 
