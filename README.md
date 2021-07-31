@@ -116,10 +116,10 @@ Build Settings
 > 
 > **OpenSSL include settings**
 > 
-> ![프로젝트 링크 경로 셋팅](https://user-images.githubusercontent.com/67177785/127702165-9075a2b0-bad6-47e3-b8c0-99f0bfbadbe8.PNG)
+> ![프로젝트 링크 경로 셋팅](https://user-images.githubusercontent.com/67177785/127749501-5f481aa3-2df4-4166-b2cf-af19e676d07a.PNG)
 > 
 > **OpenSSL linker settings**
 > 
 > This underlined settings are right for my environment, maybe not also for yours
 > 
-> You have to modify this suitable for your environment as forming inclusion directory $(your OpenSSL Path)\include, linker directory $(your OpenSSL Path)\lib
+> You have to modify this suitable for your environment as forming inclusion directory $(your OpenSSL Path)\include, linker directory $(your OpenSSL Path)\lib\VC\static
