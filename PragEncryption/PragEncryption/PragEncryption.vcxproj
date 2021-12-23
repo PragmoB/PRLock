@@ -254,12 +254,13 @@
   <ItemGroup>
     <Image Include="C:\Users\vip\Pictures\PragEncryption.bmp" />
     <Image Include="C:\Users\vip\Pictures\PragEncryption.png" />
-    <Image Include="PragEncryption.ico" />
+    <Image Include="Old1.ico" />
     <Image Include="PragEncryption.png" />
     <Image Include="res\Decrypt.bmp" />
     <Image Include="res\Encrypt.bmp" />
     <Image Include="res\icon1.ico" />
     <Image Include="res\PragEncryption.ico" />
+    <Image Include="res\Old2.ico" />
     <Image Include="res\PRLock.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
