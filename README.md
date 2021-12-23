@@ -124,6 +124,7 @@ This underlined settings are right for my environment, maybe not also for yours
  
 You have to modify this suitable for your environment as forming inclusion directory $(your OpenSSL Path)\include, linker directory $(your OpenSSL Path)\lib\VC\static
 
-### License
+License
+==========================
 
 This project is licensed under the terms of GPL-3.0 license.
