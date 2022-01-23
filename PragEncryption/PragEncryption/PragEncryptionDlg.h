@@ -40,4 +40,5 @@ public:
 	CFileEncryptDlg FDlg;
 	CKeyEncryptDlg KDlg;
 	CEnvironmentSetDlg EDlg;
+	afx_msg void OnClose();
 };

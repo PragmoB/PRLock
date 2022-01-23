@@ -16,6 +16,7 @@ CEnvironmentSetDlg::CEnvironmentSetDlg(CWnd* pParent /*=nullptr*/)
 	, FILE_AUTO_DELETE(0)
 	, EncKeyPath(_T(""))
 	, DecKeyPath(_T(""))
+	, version(_T("2.1.1"))
 {
 
 }
@@ -43,8 +44,6 @@ END_MESSAGE_MAP()
 
 
 // CEnvironmentSetDlg 메시지 처리기
-
-const TCHAR* version = TEXT("2.1.3");
 
 int CEnvironmentSetDlg::update()
 {

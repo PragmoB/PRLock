@@ -30,5 +30,6 @@ public:
 	afx_msg void OnBnClickedButtonDecryptKeyPath();
 	CString DecKeyPath;
 	CString EncKeyPath;
+	const TCHAR* version;
 	afx_msg void OnBnClickedButtonEnvSave();
 };

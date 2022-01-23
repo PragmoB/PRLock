@@ -54,6 +54,9 @@
     <ClInclude Include="AES_Pragmo.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="utils.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="PragEncryption.cpp">
@@ -87,6 +90,9 @@
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="AES_Pragmo.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="utils.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>

@@ -5,9 +5,11 @@
 #include "stdafx.h"
 #include "PragEncryption.h"
 #include "PragEncryptionDlg.h"
+#include "CEnvironmentSetDlg.h"
 #include "afxdialogex.h"
 
-//#include "RSA_Pragmo.h"
+#include <direct.h>
+#include "utils.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -67,6 +69,7 @@ BEGIN_MESSAGE_MAP(CPragEncryptionDlg, CDialogEx)
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
 	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB_MAIN, &CPragEncryptionDlg::OnSelchangeTabMain)
+	ON_WM_CLOSE()
 END_MESSAGE_MAP()
 
 
@@ -203,4 +206,27 @@ void CPragEncryptionDlg::OnSelchangeTabMain(NMHDR *pNMHDR, LRESULT *pResult)
 	}
 
 	*pResult = 0;
+}
+
+
+void CPragEncryptionDlg::OnClose()
+{
+	// TODO: 여기에 메시지 처리기 코드를 추가 및/또는 기본값을 호출합니다.
+
+	// 복호화에서 임시로 열기를 사용했을 경우 종료 전 그에 대한 캐시 파일을 삭제해줘야함
+	CEnvironmentSetDlg EnvSet;
+	
+	TCHAR dir[50] = TEXT("");
+	CString str;
+
+	GetEnvironmentVariable(TEXT("APPDATA"), dir, 50);
+	str = str + dir + TEXT("\\PRLock ") + EnvSet.version + TEXT("\\cache");
+
+	// 디렉터리 삭제에 실패한 경우
+	if (!DeleteDirectoryFile(str))
+	{
+		MessageBox(TEXT("캐시 삭제에 실패했습니다. 임시로 열린 파일을 닫아주세요"), TEXT("오류"), MB_ICONERROR | MB_OK);
+		return;
+	}
+	CDialogEx::OnClose();
 }

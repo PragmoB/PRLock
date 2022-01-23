@@ -348,7 +348,13 @@ void CFileEncryptDlg::OnClickedButtonFileEncrypt()
 		DeleteFile(FilePath);
 }
 
-
+UINT WINAPI system_wrap(void* p)
+{
+	char buf[100] = "";
+	strcpy_s(buf, (const char*)p);
+	system(buf);
+	return 0;
+}
 void CFileEncryptDlg::OnClickedButtonFileDecrypt()
 {
 	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
@@ -367,7 +373,8 @@ void CFileEncryptDlg::OnClickedButtonFileDecrypt()
 	RSA_Pragmo key;
 	char letter[1] = "";
 	UINT FileContentStart = 0;
-	CStringA str;
+	CString str;
+	CStringA strA;
 
 	EnvSet.get();
 	/* 원본 파일(original) 액세스, 복호화된 파일(result) 생성 */
@@ -525,8 +532,8 @@ void CFileEncryptDlg::OnClickedButtonFileDecrypt()
 
 	FileContentStart += strlen(bcrypt_hashed) + 1;
 
-	str = input.normalkey;
-	if (!bcrypt::validatePassword(std::string(str.GetBuffer()), std::string(bcrypt_hashed)))
+	strA = input.normalkey;
+	if (!bcrypt::validatePassword(std::string(strA.GetBuffer()), std::string(bcrypt_hashed)))
 	{
 		MessageBox(TEXT("비밀번호가 일치하지 않습니다"), TEXT("알림"), MB_OK | MB_ICONERROR);
 		return;
@@ -534,11 +541,33 @@ void CFileEncryptDlg::OnClickedButtonFileDecrypt()
 
 	/* 파일 콘텐츠 복호화 */
 
-	if (!result.Open(FileDir + DecryptedFileName,
-		CFile::modeCreate | CFile::modeWrite | CFile::shareExclusive | CFile::typeBinary, &eex)) // 복호화될 파일 생성
+	// 복호화될 파일 생성
+	TCHAR AppdataDir[50] = L"";
+	switch (input.OpenOpt)
 	{
-		eex.ReportError();
-		return;
+	case TEMP : // 임시로 열기인 경우
+
+		// AppData의 cache경로에 임시적으로 생성
+
+		GetEnvironmentVariable(TEXT("APPDATA"), AppdataDir, 50);
+		str = str + AppdataDir + TEXT("\\PRLock ") + EnvSet.version;
+		CreateDirectory(str, NULL);
+		str += TEXT("\\cache");
+		CreateDirectory(str, NULL);
+		if (!result.Open(str + TEXT("\\") + DecryptedFileName,
+			CFile::modeCreate | CFile::modeWrite | CFile::shareExclusive | CFile::typeBinary, &eex))
+		{
+			eex.ReportError();
+			return;
+		}
+		break;
+	default : // 기본은 원래 있는 자리(복호화 대상 파일이 있는 경로)에 생성하는게 원칙
+		if (!result.Open(FileDir + DecryptedFileName,
+			CFile::modeCreate | CFile::modeWrite | CFile::shareExclusive | CFile::typeBinary, &eex))
+		{
+			eex.ReportError();
+			return;
+		}
 	}
 
 	UINT pNormalkey = 0;
@@ -579,7 +608,7 @@ void CFileEncryptDlg::OnClickedButtonFileDecrypt()
 		MSG msg;
 		int i = 0;
 
-		str = input.normalkey;
+		strA = input.normalkey;
 
 		AES_Pragmo aeskey;
 		UCHAR normalsha[33] = "";
@@ -587,7 +616,7 @@ void CFileEncryptDlg::OnClickedButtonFileDecrypt()
 		// 비밀번호를 SHA256으로 해쉬 후
 		SHA256_CTX sha256;
 		SHA256_Init(&sha256);
-		SHA256_Update(&sha256, (UCHAR*)str.GetBuffer(), strlen(str.GetBuffer()));
+		SHA256_Update(&sha256, (UCHAR*)strA.GetBuffer(), strlen(strA.GetBuffer()));
 		SHA256_Final(normalsha, &sha256);
 
 		// 해쉬값으로 복호화 키 구성
@@ -655,10 +684,23 @@ void CFileEncryptDlg::OnClickedButtonFileDecrypt()
 	original.Close();
 	result.Close();
 
-	CEnvironmentSetDlg EDlg;
-	EDlg.get();
-	if (EDlg.FILE_AUTO_DELETE)
-		DeleteFile(FilePath);
+	// 복호화된 파일 열기 옵션에 따라 다르게 동작
+	switch (input.OpenOpt)
+	{
+	case TEMP : // 임시로 열기 : %appdata%\\PRLock\\cache에 복호화된 파일 생성 후 cmd로 열기
+		str = AppdataDir;
+		strA = TEXT("\"") + str + TEXT("\\PRLock ") + EnvSet.version + TEXT("\\cache\\") + DecryptedFileName + TEXT("\"");
+		setlocale(LC_ALL, ""); // cmd에서 한글 지원
+
+		DWORD dwThreadID;
+		_beginthreadex(NULL, 0, system_wrap, strA.GetBuffer(), 0, (unsigned*)&dwThreadID);
+		break;
+
+	default :
+		if (EnvSet.FILE_AUTO_DELETE)
+			DeleteFile(FilePath);
+	}
+
 }
 
 BigInteger CFileEncryptDlg::AccessKey(CFile* file)
