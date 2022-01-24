@@ -504,9 +504,11 @@ void CFileEncryptDlg::OnClickedButtonFileDecrypt()
 		N.Close();
 		d.Close();
 
-		if (MessageBox(TEXT("비밀번호: ") + input.normalkey + TEXT("\n복호화를 계속하시겠습니까?"),
-			TEXT("비밀번호 복호화 완료"), MB_YESNO) == IDNO)
-			return;
+		if (MessageBox(TEXT("비밀번호를 확인 하시겠습니까?"),
+			TEXT("비밀번호 복호화 완료"), MB_YESNO | MB_ICONINFORMATION) == IDYES)
+		{
+			MessageBox(TEXT("비밀번호 : ") + input.normalkey, TEXT("비밀번호 확인"), MB_OK | MB_ICONINFORMATION);
+		}
 	}
 	/* 콘텐츠 시작지점 계산 */
 	{

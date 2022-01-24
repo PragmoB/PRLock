@@ -21,12 +21,12 @@
 #define IDC_EDIT1                       1001
 #define IDC_EDIT_ENCRYPT_KEY_PATH       1001
 #define IDC_EDIT_KEY_LENGTH             1001
+#define IDC_EDIT_PASSWORD_CHECK         1001
 #define IDC_BUTTON_FILE_ENCRYPT         1002
 #define IDC_EDIT_NORMAL                 1002
 #define IDC_EDIT_DECRYPT_KEY_PATH       1002
 #define IDC_BUTTON_OK                   1003
 #define IDC_BUTTON_KEY_PATH             1004
-#define IDC_BUTTON_OK2                  1004
 #define IDC_BUTTON_TEMP_OPEN            1004
 #define IDC_EDIT_KEY_PATH               1005
 #define IDC_BUTTON_FILE_DECRYPT         1006

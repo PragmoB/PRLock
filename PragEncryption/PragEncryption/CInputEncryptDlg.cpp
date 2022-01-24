@@ -15,6 +15,7 @@ CInputEncryptDlg::CInputEncryptDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_DIALOG_INPUT_ENCRYPT_KEY, pParent)
 	, normalkey(_T(""))
 	, nouse_master(FALSE)
+	, m_edit_password_check(_T(""))
 {
 
 }
@@ -29,6 +30,7 @@ void CInputEncryptDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_EDIT_NORMAL, normalkey);
 	//  DDX_Check(pDX, IDC_CHECK_NO_USE_MASTER, use_master);
 	DDX_Check(pDX, IDC_CHECK_NO_USE_MASTER, nouse_master);
+	DDX_Text(pDX, IDC_EDIT_PASSWORD_CHECK, m_edit_password_check);
 }
 
 
@@ -49,6 +51,11 @@ void CInputEncryptDlg::OnBnClickedButtonOk()
 	if (normalkey == "")
 	{
 		MessageBox(TEXT("비밀번호를 입력해주세요"), TEXT("알림"), MB_OK | MB_ICONINFORMATION);
+		return;
+	}
+	if (normalkey != m_edit_password_check)
+	{
+		MessageBox(TEXT("비밀번호가 틀립니다"), TEXT("알림"), MB_OK | MB_ICONWARNING);
 		return;
 	}
 

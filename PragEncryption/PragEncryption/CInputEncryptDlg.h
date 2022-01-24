@@ -27,4 +27,5 @@ public:
 //	BOOL use_master;
 	afx_msg void OnClickedCheckNoUseMaster();
 	BOOL nouse_master;
+	CString m_edit_password_check;
 };
